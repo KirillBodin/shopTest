@@ -34,7 +34,7 @@ gem "thruster", require: false
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 
- gem "rack-cors", "~> 2.0", require: "rack/cors"
+ gem "rack-cors", "~> 3.0", require: "rack/cors"
  gem 'devise'
 
  gem 'devise-jwt', '~> 0.12.1'
