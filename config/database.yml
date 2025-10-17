@@ -1,4 +1,5 @@
 # config/database.yml
+
 default: &default
   adapter: postgresql
   encoding: unicode
@@ -7,18 +8,13 @@ default: &default
 
 development:
   <<: *default
-  host: <%= ENV.fetch("DB_HOST", "localhost") %>
-  username: <%= ENV.fetch("DB_USER", "kirill") %>
-  password: <%= ENV.fetch("DB_PASSWORD", "12345") %>
-  database: <%= ENV.fetch("DB_NAME", "shop_api_development") %>
+  # (если у тебя локально не через DATABASE_URL, можно оставить твои dev-поля)
 
 test:
   <<: *default
-  host: <%= ENV.fetch("DB_HOST", "localhost") %>
-  username: <%= ENV.fetch("DB_USER", "kirill") %>
-  password: <%= ENV.fetch("DB_PASSWORD", "12345") %>
-  database: <%= ENV.fetch("DB_NAME_TEST", "shop_api_test") %>
 
 production:
-  <<: *default
-  # в проде используй только DATABASE_URL (задашь на хостинге)
+  primary:
+    <<: *default
+  cable:
+    <<: *default
