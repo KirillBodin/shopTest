@@ -10,6 +10,12 @@ module ShopApi
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
+# Загружаем папку с middleware
+config.autoload_paths << Rails.root.join("app/middleware")
+config.eager_load_paths << Rails.root.join("app/middleware")
+
+# СТАВИМ ПЕРВЫМ: до любого другого миддлвэра
+config.middleware.insert_before 0, CorsPreflightMiddleware
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
