@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
 require "rack/cors"
+# На случай, если файл middleware не был загружен ранее
+require Rails.root.join("app/middleware/cors_preflight_middleware")
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    # Берём список доменов из ENV (через запятую)
+    # Берём домены из ENV (через запятую)
     raw = ENV.fetch("CLIENT_ORIGINS", ENV.fetch("CLIENT_ORIGIN", ""))
     allowed_origins = raw.split(",").map(&:strip).reject(&:empty?)
 
-    # РЕЖИМЫ:
-    # - В development, если список пуст — разрешаем всем (без credentials).
-    # - Во всех остальных случаях — явно перечисленные домены + credentials: true.
+    # В dev, если переменные не заданы — разрешаем всех (без credentials).
     if allowed_origins.empty? && Rails.env.development?
       origins "*"
       resource "*",
         headers: :any,
         methods: %i[get post put patch delete options head],
         expose: %w[Authorization],
-        credentials: false,      # при '*' credentials ДОЛЖНЫ быть false
+        credentials: false,      # при '*' ДОЛЖНО быть false
         max_age: 86_400
     else
       origins(*allowed_origins)
@@ -30,3 +30,6 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
     end
   end
 end
+
+# Теперь, когда Rack::Cors уже вставлен, можно безопасно вставить наш preflight-процессор СРАЗУ ПОСЛЕ него
+Rails.application.config.middleware.insert_after Rack::Cors, ::CorsPreflightMiddleware
