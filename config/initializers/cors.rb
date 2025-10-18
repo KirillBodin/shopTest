@@ -1,20 +1,32 @@
-# config/initializers/cors.rb
+# frozen_string_literal: true
+
 require "rack/cors"
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    # поддержка нескольких Origin из ENV
-    allowed_origins = ENV.fetch("CLIENT_ORIGINS", ENV.fetch("CLIENT_ORIGIN", "")).split(",").map(&:strip).reject(&:empty?)
+    # Берём список доменов из ENV (через запятую)
+    raw = ENV.fetch("CLIENT_ORIGINS", ENV.fetch("CLIENT_ORIGIN", ""))
+    allowed_origins = raw.split(",").map(&:strip).reject(&:empty?)
 
-    # если переменная не задана — на всякий случай ничего не разрешаем
-    # (лучше явно указать домены ниже в ENV)
-    origins(*allowed_origins)
-
-    resource "*",
-      headers: :any,
-      methods: %i[get post put patch delete options head],
-      expose: %w[Authorization],
-      credentials: true,         # важно, если фронт шлёт credentials
-      max_age: 86400
+    # РЕЖИМЫ:
+    # - В development, если список пуст — разрешаем всем (без credentials).
+    # - Во всех остальных случаях — явно перечисленные домены + credentials: true.
+    if allowed_origins.empty? && Rails.env.development?
+      origins "*"
+      resource "*",
+        headers: :any,
+        methods: %i[get post put patch delete options head],
+        expose: %w[Authorization],
+        credentials: false,      # при '*' credentials ДОЛЖНЫ быть false
+        max_age: 86_400
+    else
+      origins(*allowed_origins)
+      resource "*",
+        headers: :any,
+        methods: %i[get post put patch delete options head],
+        expose: %w[Authorization],
+        credentials: true,       # cookies/JWT разрешены только при явных origins
+        max_age: 86_400
+    end
   end
 end

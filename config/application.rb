@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative "boot"
 require "rails/all"
 
@@ -5,7 +7,7 @@ require "rails/all"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-# Подключаем dotenv для переменных окружения
+# Подключаем dotenv для переменных окружения (локально/стейдж)
 Dotenv::Railtie.load if defined?(Dotenv)
 
 module ShopApi
@@ -13,28 +15,26 @@ module ShopApi
     # Настройки по умолчанию для Rails 8
     config.load_defaults 8.0
 
-    # === Загрузка и регистрация нашего кастомного middleware ===
-    # Явно подключаем файл
-    require_relative "../app/middleware/cors_preflight_middleware"
+    # Приложение работает как API, но нам нужны cookies/сессии (например, Devise)
+    config.api_only = true
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore
 
-    # Добавляем пути к middleware в автозагрузку
+    # === Наше кастомное middleware ===
+    # Путь к файлу и автозагрузка
+    require_relative "../app/middleware/cors_preflight_middleware"
     config.autoload_paths << Rails.root.join("app/middleware")
     config.eager_load_paths << Rails.root.join("app/middleware")
 
-    # Вставляем CorsPreflightMiddleware самым первым — до Rack::Cors и всего остального
-    config.middleware.insert_before 0, ::CorsPreflightMiddleware
-
-    # === Настройки API ===
-    config.api_only = true
-
-    # Включаем cookies и сессии (Devise их требует)
-    config.middleware.use ActionDispatch::Cookies
-    config.middleware.use ActionDispatch::Session::CookieStore
+    # === Порядок middleware критичен ===
+    # 1) Rack::Cors — САМЫМ ПЕРВЫМ (ставим в cors.rb через insert_before 0)
+    # 2) Наш preflight — СРАЗУ ПОСЛЕ Rack::Cors, чтобы не гасить CORS-заголовки
+    config.middleware.insert_after Rack::Cors, ::CorsPreflightMiddleware
 
     # Игнорируем ненужные поддиректории lib
     config.autoload_lib(ignore: %w[assets tasks])
 
-    # Пример: можно задать временную зону
+    # Пример: часовой пояс
     # config.time_zone = "Kyiv"
   end
 end
