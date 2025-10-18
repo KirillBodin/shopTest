@@ -1,42 +1,40 @@
 require_relative "boot"
-
 require "rails/all"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
+
+# Подключаем dotenv для переменных окружения
 Dotenv::Railtie.load if defined?(Dotenv)
+
 module ShopApi
   class Application < Rails::Application
-    # Initialize configuration defaults for originally generated Rails version.
+    # Настройки по умолчанию для Rails 8
     config.load_defaults 8.0
-# Загружаем папку с middleware
-config.autoload_paths << Rails.root.join("app/middleware")
-config.eager_load_paths << Rails.root.join("app/middleware")
 
-# СТАВИМ ПЕРВЫМ: до любого другого миддлвэра
-config.middleware.insert_before 0, CorsPreflightMiddleware
+    # === Загрузка и регистрация нашего кастомного middleware ===
+    # Явно подключаем файл
+    require_relative "../app/middleware/cors_preflight_middleware"
 
-    # Please, add to the `ignore` list any other `lib` subdirectories that do
-    # not contain `.rb` files, or that should not be reloaded or eager loaded.
-    # Common ones are `templates`, `generators`, or `middleware`, for example.
+    # Добавляем пути к middleware в автозагрузку
+    config.autoload_paths << Rails.root.join("app/middleware")
+    config.eager_load_paths << Rails.root.join("app/middleware")
+
+    # Вставляем CorsPreflightMiddleware самым первым — до Rack::Cors и всего остального
+    config.middleware.insert_before 0, ::CorsPreflightMiddleware
+
+    # === Настройки API ===
+    config.api_only = true
+
+    # Включаем cookies и сессии (Devise их требует)
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore
+
+    # Игнорируем ненужные поддиректории lib
     config.autoload_lib(ignore: %w[assets tasks])
 
-    # Configuration for the application, engines, and railties goes here.
-    #
-    # These settings can be overridden in specific environments using the files
-    # in config/environments, which are processed later.
-    #
-    # config.time_zone = "Central Time (US & Canada)"
-    # config.eager_load_paths << Rails.root.join("extras")
-
-    # Only loads a smaller set of middleware suitable for API only apps.
-    # Middleware like session, flash, cookies can be added back manually.
-    # Skip views, helpers and assets when generating a new resource.
-    config.api_only = true
-    # API-only, но включаем cookie и сессии, чтобы Devise не падал на sign_in
-config.middleware.use ActionDispatch::Cookies
-config.middleware.use ActionDispatch::Session::CookieStore
-
+    # Пример: можно задать временную зону
+    # config.time_zone = "Kyiv"
   end
 end
